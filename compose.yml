@@ -1,0 +1,35 @@
+services:
+  proxy:
+    image: caddy:2.9.1
+    ports:
+      - "18080:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.6
+    command:
+      - start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: password
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak_db:5432/keycloak
+      KC_DB_USER: keycloak
+      KC_DB_PASSWORD: password
+      KC_HOSTNAME: http://localhost:18080
+      KC_HEALTH_ENABLED: true
+    depends_on:
+      keycloak_db:
+        condition: service_healthy
+
+  keycloak_db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "admin"]
+      timeout: 1s
+      retries: 10
